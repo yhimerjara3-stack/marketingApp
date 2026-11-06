@@ -1,0 +1,13 @@
+{
+  "appId": "com.mercadoexpres.tienda",
+  "appName": "Mercado Exprés",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#16a34a",
+    "allowMixedContent": true
+  }
+}

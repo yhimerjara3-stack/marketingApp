@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercado Exprés - Tienda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- ========================================== -->
+    <!-- VISTA 1: TIENDA PARA EL CLIENTE            -->
+    <!-- ========================================== -->
+    <div id="client-view" class="block pb-20">
+        <!-- Encabezado -->
+        <header class="bg-green-600 text-white p-4 shadow-md sticky top-0 z-10 flex justify-center items-center">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold">🍎 Mercado Exprés</h1>
+                <p class="text-sm text-green-100">Fresco y rápido a tu puerta</p>
+            </div>
+        </header>
+
+        <!-- Contenedor Principal (Catálogo) -->
+        <main class="p-4 max-w-md mx-auto">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Nuestro Menú</h2>
+            <div id="product-list" class="grid grid-cols-2 gap-4">
+                <!-- Productos cargados dinámicamente -->
+            </div>
+        </main>
+
+        <!-- Footer con Acceso Secreto al Admin -->
+        <footer class="mt-8 py-8 text-center text-gray-400 text-xs">
+            <p>© 2026 Mercado Exprés</p>
+            <!-- Enlace discreto para entrar al admin -->
+            <button onclick="loginAdmin()" class="mt-2 text-gray-300 hover:text-gray-500">Acceso Administrativo</button>
+        </footer>
+
+        <!-- Botón Flotante del Carrito -->
+        <button onclick="toggleModal('cart-modal')" class="fixed bottom-4 right-4 bg-orange-500 text-white p-4 rounded-full shadow-lg font-bold flex items-center justify-center gap-2 z-20 hover:scale-105 transition">
+            🛒 <span id="cart-count">0</span>
+        </button>
+
+        <!-- VENTANA: CARRITO DE COMPRAS -->
+        <div id="cart-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-30 justify-center items-end sm:items-center">
+            <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Tu Pedido</h2>
+                    <button onclick="toggleModal('cart-modal')" class="text-gray-500 font-bold text-xl">✕</button>
+                </div>
+                
+                <div id="cart-items" class="mb-4"></div>
+
+                <div class="mb-4 bg-gray-50 p-3 rounded-lg border">
+                    <h3 class="font-bold mb-2 text-sm">Método de entrega:</h3>
+                    <label class="flex items-center gap-2 text-sm mb-2">
+                        <input type="radio" name="delivery" value="Recojo" checked onchange="calculateTotal()"> Recojo en Tienda (S/ 0.00)
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="radio" name="delivery" value="Delivery" onchange="calculateTotal()"> Delivery (+ S/ 5.00)
+                    </label>
+                </div>
+
+                <div class="mb-4 bg-gray-50 p-3 rounded-lg border">
+                    <h3 class="font-bold mb-2 text-sm">Método de pago:</h3>
+                    <select id="payment-method" class="w-full p-2 border rounded text-sm mb-2">
+                        <option value="Efectivo">Efectivo contra entrega</option>
+                        <option value="Yape/Plin">Yape / Plin</option>
+                        <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+                    </select>
+                    <input type="number" id="client-phone" placeholder="Tu WhatsApp (Ej: 999888777)" class="w-full p-2 border rounded text-sm mt-2">
+                </div>
+
+                <div class="border-t pt-4">
+                    <div class="flex justify-between font-bold text-lg mb-4">
+                        <span>Total:</span>
+                        <span id="cart-total">S/ 0.00</span>
+                    </div>
+                    <button onclick="processCheckout()" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700">
+                        Confirmar Pedido S/ <span id="btn-total">0.00</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 2: PANEL DE ADMINISTRADOR (OCULTO)   -->
+    <!-- ========================================== -->
+    <div id="admin-view" class="hidden min-h-screen bg-gray-100 flex-col">
+        <!-- Header Admin -->
+        <div class="bg-gray-900 text-white p-4 shadow-md sticky top-0 flex justify-between items-center z-10">
+            <h2 class="text-lg font-bold">⚙️ Centro de Control</h2>
+            <button onclick="logoutAdmin()" class="bg-red-500 px-3 py-1 rounded text-sm font-bold shadow hover:bg-red-600">
+                Salir
+            </button>
+        </div>
+        
+        <!-- Navegación Admin -->
+        <div class="flex border-b text-sm font-bold bg-white sticky top-[60px] z-10 shadow-sm">
+            <button onclick="switchTab('tab-pedidos', this)" class="admin-tab flex-1 p-3 border-b-2 border-blue-600 text-blue-600">Pedidos</button>
+            <button onclick="switchTab('tab-catalogo', this)" class="admin-tab flex-1 p-3 text-gray-500 hover:bg-gray-100">Catálogo</button>
+            <button onclick="switchTab('tab-metricas', this)" class="admin-tab flex-1 p-3 text-gray-500 hover:bg-gray-100">Métricas</button>
+        </div>
+
+        <!-- Cuerpo del Admin -->
+        <div class="p-4 flex-1 max-w-lg mx-auto w-full">
+            
+            <!-- PESTAÑA: PEDIDOS -->
+            <div id="tab-pedidos" class="tab-content active">
+                <div id="admin-orders"></div>
+            </div>
+
+            <!-- PESTAÑA: CATÁLOGO -->
+            <div id="tab-catalogo" class="tab-content">
+                <div class="bg-white p-4 rounded-lg shadow-sm border mb-4">
+                    <h3 class="font-bold mb-3 text-gray-800">Añadir Nuevo Producto</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <input type="text" id="new-prod-name" placeholder="Nombre" class="border p-2 rounded text-sm w-full">
+                        <input type="number" id="new-prod-price" placeholder="Precio (Ej: 10.50)" class="border p-2 rounded text-sm w-full">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="new-prod-emoji" placeholder="Emoji (Ej: 🍔)" class="border p-2 rounded text-sm w-full">
+                        <button onclick="addProduct()" class="bg-blue-600 text-white p-2 rounded font-bold text-sm">Guardar</button>
+                    </div>
+                </div>
+                <h3 class="font-bold mb-2 text-gray-700">Productos Actuales</h3>
+                <div id="admin-catalog-list"></div>
+            </div>
+
+            <!-- PESTAÑA: MÉTRICAS -->
+            <div id="tab-metricas" class="tab-content">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-green-100 p-4 rounded-xl text-center border border-green-200 shadow-sm">
+                        <p class="text-sm text-green-700 font-bold">Ventas Totales</p>
+                        <p class="text-2xl font-black text-green-900" id="metric-sales">S/ 0.00</p>
+                    </div>
+                    <div class="bg-blue-100 p-4 rounded-xl text-center border border-blue-200 shadow-sm">
+                        <p class="text-sm text-blue-700 font-bold">Pedidos</p>
+                        <p class="text-2xl font-black text-blue-900" id="metric-orders">0</p>
+                    </div>
+                </div>
+                <button onclick="exportCSV()" class="w-full bg-gray-800 text-white font-bold p-3 rounded-lg mb-3 flex items-center justify-center gap-2 shadow">
+                    📊 Exportar a Excel (CSV)
+                </button>
+                <button onclick="clearOrders()" class="w-full border-2 border-red-500 text-red-600 font-bold p-3 rounded-lg bg-white shadow-sm">
+                    🗑️ Borrar Historial de Pedidos
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- LÓGICA JAVASCRIPT                          -->
+    <!-- ========================================== -->
+    <script>
+        // --- 1. DATOS Y PERSISTENCIA ---
+        let defaultProducts = [
+            { id: 1, name: "Manzanas Frescas", price: 3.50, emoji: "🍎" },
+            { id: 2, name: "Plátanos", price: 2.00, emoji: "🍌" },
+            { id: 3, name: "Pollo a la Plancha", price: 12.00, emoji: "🍗" },
+            { id: 4, name: "Ensalada Mixta", price: 8.50, emoji: "🥗" }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('marketProducts')) || defaultProducts;
+        let cart = [];
+        const ADMIN_PASSWORD = "1234"; // <--- CONTRASEÑA DEL ADMIN
+
+        // --- 2. SISTEMA DE LOGIN ADMIN ---
+        function loginAdmin() {
+            const pwd = prompt("ACCESO RESTRINGIDO\nIngresa la contraseña (Pista: es 1234):");
+            if (pwd === ADMIN_PASSWORD) {
+                document.getElementById('client-view').classList.remove('block');
+                document.getElementById('client-view').classList.add('hidden');
+                
+                document.getElementById('admin-view').classList.remove('hidden');
+                document.getElementById('admin-view').classList.add('flex');
+                
+                refreshAdminData();
+            } else if (pwd !== null) {
+                alert("Contraseña incorrecta.");
+            }
+        }
+
+        function logoutAdmin() {
+            document.getElementById('admin-view').classList.remove('flex');
+            document.getElementById('admin-view').classList.add('hidden');
+            
+            document.getElementById('client-view').classList.remove('hidden');
+            document.getElementById('client-view').classList.add('block');
+        }
+
+        // --- 3. TIENDA CLIENTE ---
+        function renderApp() {
+            const list = document.getElementById('product-list');
+            list.innerHTML = products.map(prod => `
+                <div class="bg-white p-4 rounded-xl shadow border text-center flex flex-col justify-between">
+                    <div>
+                        <div class="text-4xl mb-2">${prod.emoji}</div>
+                        <h3 class="font-bold text-sm mb-1 text-gray-800">${prod.name}</h3>
+                        <p class="text-green-600 font-black mb-3">S/ ${parseFloat(prod.price).toFixed(2)}</p>
+                    </div>
+                    <button onclick="addToCart(${prod.id})" class="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm w-full font-bold shadow hover:bg-orange-600 active:scale-95">
+                        Añadir 🛒
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            cart.push({...product}); 
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.length;
+            const cartItemsDiv = document.getElementById('cart-items');
+            
+            if (cart.length === 0) {
+                cartItemsDiv.innerHTML = '<p class="text-gray-500 text-center text-sm my-4">El carrito está vacío</p>';
+            } else {
+                cartItemsDiv.innerHTML = cart.map((item, index) => `
+                    <div class="flex justify-between items-center mb-2 border-b pb-2 text-sm">
+                        <span>${item.emoji} ${item.name}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold">S/ ${parseFloat(item.price).toFixed(2)}</span>
+                            <button onclick="removeFromCart(${index})" class="text-red-500 bg-red-50 px-2 py-1 rounded">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            calculateTotal();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function calculateTotal() {
+            let subtotal = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+            let deliveryType = document.querySelector('input[name="delivery"]:checked').value;
+            let deliveryCost = deliveryType === 'Delivery' ? 5.00 : 0.00;
+            
+            let total = subtotal + deliveryCost;
+            document.getElementById('cart-total').innerText = `S/ ${total.toFixed(2)}`;
+            document.getElementById('btn-total').innerText = total.toFixed(2);
+            return total;
+        }
+
+        function processCheckout() {
+            if (cart.length === 0) return alert("El carrito está vacío.");
+
+            const method = document.getElementById('payment-method').value;
+            const delivery = document.querySelector('input[name="delivery"]:checked').value;
+            const phone = document.getElementById('client-phone').value || "No registrado";
+            const total = calculateTotal();
+
+            const order = {
+                id: Math.floor(Math.random() * 9000) + 1000,
+                date: new Date().toLocaleString(),
+                items: [...cart],
+                method: method,
+                delivery: delivery,
+                phone: phone,
+                total: total,
+                status: 'Pendiente'
+            };
+
+            let orders = JSON.parse(localStorage.getItem('marketOrders')) || [];
+            orders.push(order);
+            localStorage.setItem('marketOrders', JSON.stringify(orders));
+
+            alert(`✅ ¡Venta Exitosa!\nTu número de orden es #${order.id}.`);
+            
+            cart = [];
+            updateCartUI();
+            toggleModal('cart-modal');
+        }
+
+        // --- 4. PANEL DE CONTROL (ADMIN) ---
+        function refreshAdminData() {
+            renderAdminOrders();
+            renderAdminCatalog();
+            updateMetrics();
+        }
+
+        function renderAdminOrders() {
+            const adminDiv = document.getElementById('admin-orders');
+            let orders = JSON.parse(localStorage.getItem('marketOrders')) || [];
+
+            if (orders.length === 0) {
+                adminDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No hay pedidos registrados.</p>';
+                return;
+            }
+
+            const statusColors = {
+                'Pendiente': 'bg-yellow-100 text-yellow-800',
+                'Preparando': 'bg-blue-100 text-blue-800',
+                'En Camino': 'bg-purple-100 text-purple-800',
+                'Entregado': 'bg-green-100 text-green-800'
+            };
+
+            adminDiv.innerHTML = orders.map(order => `
+                <div class="bg-white border border-gray-200 p-4 rounded-xl mb-4 shadow-sm text-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-black text-gray-800 text-base">Orden #${order.id}</p>
+                            <p class="text-gray-400 text-xs">${order.date} | Cel: ${order.phone}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded font-bold text-xs ${statusColors[order.status]}">${order.status}</span>
+                    </div>
+                    
+                    <div class="my-2 text-gray-700 bg-gray-50 p-2 rounded">
+                        <p>📍 ${order.delivery} | 💳 ${order.method}</p>
+                        <p class="mt-1">${order.items.map(i => `${i.emoji} ${i.name}`).join(', ')}</p>
+                        <p class="font-black mt-2 text-base text-right">S/ ${order.total.toFixed(2)}</p>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-3 pt-3 border-t">
+                        <select onchange="changeStatus(${order.id}, this.value)" class="border rounded p-2 flex-1 text-xs font-bold bg-gray-50 outline-none">
+                            <option value="Pendiente" ${order.status === 'Pendiente'?'selected':''}>⏳ Pendiente</option>
+                            <option value="Preparando" ${order.status === 'Preparando'?'selected':''}>🍳 Preparando</option>
+                            <option value="En Camino" ${order.status === 'En Camino'?'selected':''}>🛵 En Camino</option>
+                            <option value="Entregado" ${order.status === 'Entregado'?'selected':''}>✅ Entregado</option>
+                        </select>
+                        <button onclick="sendStatusWhatsApp(${order.id})" class="bg-green-500 text-white px-3 py-2 rounded font-bold text-xs hover:bg-green-600 shadow-sm flex items-center gap-1">
+                            WhatsApp
+                        </button>
+                    </div>
+                </div>
+            `).reverse().join('');
+        }
+
+        function changeStatus(orderId, newStatus) {
+            let orders = JSON.parse(localStorage.getItem('marketOrders')) || [];
+            let orderIndex = orders.findIndex(o => o.id === orderId);
+            if (orderIndex > -1) {
+                orders[orderIndex].status = newStatus;
+                localStorage.setItem('marketOrders', JSON.stringify(orders));
+                refreshAdminData(); // Actualiza los colores al instante
+            }
+        }
+
+        function sendStatusWhatsApp(orderId) {
+            let orders = JSON.parse(localStorage.getItem('marketOrders')) || [];
+            let order = orders.find(o => o.id === orderId);
+            
+            if (!order.phone || order.phone === "No registrado") {
+                return alert("El cliente no ingresó su número de WhatsApp al hacer la compra.");
+            }
+
+            // Mensaje inteligente que se adapta al estado
+            let mensaje = `Hola! Somos *Mercado Exprés* 🍎.\n\nTe informamos que tu orden *#${order.id}* se encuentra actualmente: *${order.status.toUpperCase()}*.\n\nTotal del pedido: S/ ${order.total.toFixed(2)}. ¡Gracias por tu preferencia!`;
+            
+            window.open(`https://wa.me/51${order.phone}?text=${encodeURIComponent(mensaje)}`, '_blank');
+        }
+
+        // Catálogo (CRUD)
+        function renderAdminCatalog() {
+            const list = document.getElementById('admin-catalog-list');
+            list.innerHTML = products.map((prod, index) => `
+                <div class="flex justify-between items-center bg-white p-3 mb-2 border rounded-lg shadow-sm text-sm">
+                    <div>
+                        <span class="text-xl">${prod.emoji}</span> 
+                        <span class="font-bold ml-1">${prod.name}</span> 
+                        <span class="text-green-600 font-bold ml-2">S/ ${parseFloat(prod.price).toFixed(2)}</span>
+                    </div>
+                    <button onclick="deleteProduct(${index})" class="text-red-500 bg-red-50 px-2 py-1 rounded font-bold border border-red-100">Borrar</button>
+                </div>
+            `).join('');
+        }
+
+        function addProduct() {
+            const name = document.getElementById('new-prod-name').value;
+            const price = parseFloat(document.getElementById('new-prod-price').value);
+            const emoji = document.getElementById('new-prod-emoji').value;
+
+            if(!name || isNaN(price) || !emoji) return alert("Completa todos los campos.");
+
+            products.push({ id: Date.now(), name, price, emoji });
+            localStorage.setItem('marketProducts', JSON.stringify(products));
+            
+            document.getElementById('new-prod-name').value = '';
+            document.getElementById('new-prod-price').value = '';
+            document.getElementById('new-prod-emoji').value = '';
+            
+            renderApp();
+            refreshAdminData();
+        }
+
+        function deleteProduct(index) {
+            if(confirm("¿Eliminar este producto?")) {
+                products.splice(index, 1);
+                localStorage.setItem('marketProducts', JSON.stringify(products));
+                renderApp();
+                refreshAdminData();
+            }
+        }
+
+        // Métricas
+        function updateMetrics() {
+            let orders = JSON.parse(localStorage.getItem('marketOrders')) || [];
+            let totalSales = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+            
+            document.getElementById('metric-sales').innerText = `S/ ${totalSales.toFixed(2)}`;
+            document.getElementById('metric-orders').innerText = orders.length;
+        }
+
+        function exportCSV() {
+            let orders = JSON.parse(localStorage.getItem('marketOrders')) || [];
+            if(orders.length === 0) return alert("No hay pedidos para exportar.");
+
+            let csvContent = "data:text/csv;charset=utf-8,ID Orden,Fecha,Telefono,Entrega,Pago,Total (S/),Estado,Productos\n";
+            
+            orders.forEach(o => {
+                let itemsStr = o.items.map(i => i.name).join(' - ');
+                csvContent += `${o.id},"${o.date}",${o.phone},${o.delivery},${o.method},${o.total},${o.status},"${itemsStr}"\n`;
+            });
+
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Reporte_Ventas.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearOrders() {
+            if(confirm("⚠️ ¿Seguro? Esto borrará el historial de pedidos permanentemente.")) {
+                localStorage.removeItem('marketOrders');
+                refreshAdminData();
+            }
+        }
+
+        // --- 5. UTILIDADES DE INTERFAZ ---
+        function toggleModal(id) {
+            document.getElementById(id).classList.toggle('active');
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.admin-tab').forEach(el => {
+                el.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600');
+                el.classList.add('text-gray-500', 'hover:bg-gray-100');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            
+            btn.classList.remove('text-gray-500', 'hover:bg-gray-100');
+            btn.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
+        }
+
+        // INICIALIZAR
+        renderApp();
+    </script>
+</body>
+</html>

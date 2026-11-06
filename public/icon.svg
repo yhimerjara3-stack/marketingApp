@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+    <linearGradient id="apple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+
+  <!-- Inner Soft Glow Circle -->
+  <circle cx="256" cy="256" r="210" fill="#ffffff" opacity="0.08" />
+
+  <!-- Central Shopping Bag & Fresh Apple Icon -->
+  <g filter="url(#shadow)">
+    <!-- Grocery Bag Base -->
+    <path d="M140 180 L372 180 L350 420 C348 435 336 446 320 446 L192 446 C176 446 164 435 162 420 Z" fill="#ffffff" />
+    
+    <!-- Bag Handle -->
+    <path d="M200 180 V130 C200 98 224 74 256 74 C288 74 312 98 312 130 V180" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" />
+    
+    <!-- Red Apple in Bag -->
+    <path d="M256 240 C230 200 185 220 185 270 C185 330 256 360 256 360 C256 360 327 330 327 270 C327 220 282 200 256 240 Z" fill="url(#apple)" />
+    
+    <!-- Green Leaf -->
+    <path d="M256 230 C256 195 285 190 285 190 C285 190 285 215 268 230 Z" fill="#22c55e" />
+
+    <!-- Shopping Cart Wheels Accent -->
+    <circle cx="205" cy="400" r="10" fill="#15803d" />
+    <circle cx="307" cy="400" r="10" fill="#15803d" />
+  </g>
+</svg>
